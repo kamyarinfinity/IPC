@@ -1,0 +1,3 @@
+﻿  client.cpp
+c:\users\user\desktop\ipc\impl\named_pipe_windows.hpp(116): warning C4018: '<': signed/unsigned mismatch
+  ipc_client.vcxproj -> C:\Users\User\Desktop\ipc\ipc_win\Debug\ipc_client.exe

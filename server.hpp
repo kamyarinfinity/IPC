@@ -1,25 +1,42 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#include <boost/archive/binary_oarchive.hpp>
+
+
 std::vector<std::string> SUPPORTED_CLASSES = {
   "DICTIONARY",
   "MATRIX"
 };
 
 void list_class(named_pipe &pipe) {
-  std::string list_str="";
-  for(auto s:SUPPORTED_CLASSES) {
-    list_str+= s + " ";
-  }
-  pipe.write(list_str.data(), list_str.length());
+	std::string list_str = "";
+	for (auto s : SUPPORTED_CLASSES) {
+		list_str += s + " ";
+	}
+	if (list_str.length() > 0) list_str.pop_back();
+
+	pipe.write(list_str.data(), list_str.length());
 }
 
-void list_actions(named_pipe &pipe, std::string object_name) {
+void list_object(named_pipe &pipe) {
+	std::string list_str = "";
+	for (auto e : active_objects) {
+		list_str += e.first + " ";
+	}
+	if (list_str.length() > 0) list_str.pop_back();
+
+	pipe.write(list_str.data(), list_str.length());
+}
+
+void list_action(named_pipe &pipe, std::string object_name) {
   std::string list_str="";
   auto pr=active_objects[object_name];
   for(auto entry:pr->actions) {
     list_str+= entry.first + " ";
   }
+  if (list_str.length() > 0) list_str.pop_back();
+
   pipe.write(list_str.data(), list_str.length());
 }
 void create(named_pipe &pipe, std::string type, std::string object_name) {
@@ -28,6 +45,19 @@ void create(named_pipe &pipe, std::string type, std::string object_name) {
   else if(type=="MATRIX")
     active_objects[object_name]=new MatrixResource();
   pipe.write("CREATE SUCCESS", 14);
+}
+
+void get_object(named_pipe &pipe, std::string object_name) {
+	std::string result;
+	{
+		std::stringstream ss;
+		boost::archive::binary_oarchive ar(ss);
+		ar.register_type<MatrixResource>();
+		ar << active_objects[object_name];
+		result = ss.str();
+		std::cout << "Writing serialized object with length " << result.length() << std::endl;
+	}
+	pipe.write(result.c_str(), result.length());
 }
 
 void get_object_attribute(named_pipe &pipe, std::string object_name, std::string attribute) {
@@ -85,6 +115,32 @@ void update_object_attribute(named_pipe &pipe, std::string object_name, std::str
     }
   }
   pipe.write("UPDATE SUCCESS", 14);
+}
+
+void get_type_object_attribute(named_pipe &pipe, std::string object_name, std::string attribute) {
+	auto pr = active_objects[object_name];
+
+	switch (pr->attributes[attribute].which()) {
+	case 0: // int
+		pipe.write("INT",3);
+		break;
+	case 1: // double
+		pipe.write("DOUBLE", 6);
+		break;
+	case 2: // string
+		pipe.write("STRING", 6);
+		break;
+	default:
+		pipe.write("[UNIDENTIFIED TYPE]", 20);
+	}
+}
+void get_type_object(named_pipe &pipe, std::string object_name) {
+	if (typeid(*active_objects[object_name]) == typeid(MatrixResource))
+		pipe.write("MATRIX",6);
+	else if (typeid(*active_objects[object_name]) == typeid(Resource))
+		pipe.write("DICTIONARY", 10);
+	else
+		pipe.write("[UNIDENTIFIED TYPE]", 20);
 }
 
 #endif

@@ -1,0 +1,5 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(391,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (ipc_win.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  server.cpp
+c:\users\user\desktop\ipc\impl\named_pipe_windows.hpp(116): warning C4018: '<': signed/unsigned mismatch
+c:\users\user\desktop\ipc\server.cpp(125): warning C4244: 'argument': conversion from 'std::streamoff' to 'const unsigned int', possible loss of data
+  ipc_win.vcxproj -> C:\Users\User\Desktop\ipc\ipc_win\Debug\ipc_server.exe

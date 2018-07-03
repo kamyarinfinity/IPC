@@ -11,7 +11,9 @@
 
 #include "resource.hpp"
 
-#define BUFSIZE 120
+BOOST_CLASS_EXPORT(MatrixResource)
+
+#define BUFSIZE 512
 
 using namespace boost::interprocess;
 std::map<std::string,Resource*> active_objects;
@@ -24,6 +26,7 @@ int main() {
 
   // ACTION:
   //  LIST CLASS
+  //  LIST OBJECT
   //  LIST ACTION <OBJECT>
   //  CREATE <TYPE> <NAME>
   //  GET <NAME> <ATTRIBUTE>
@@ -46,26 +49,39 @@ int main() {
   while(true){
 
     char *buff = new char[BUFSIZE];
-
-    size_t len=pipe.read(buff, BUFSIZE);
+	size_t len = 0;
+	try {
+		len = pipe.read(buff, BUFSIZE);
+	}
+	catch (...) {
+		break;
+	}
     if(len==0) break;
+
     std::cout << "Read " << len << " bytes." << std::endl;
     std::istringstream iss(std::string(buff,len));
 
     std::string request_type;
     iss >> request_type;
+	std::cerr << "Full Request: " << iss.str() << std::endl;
     std::cout << "Request type: " << request_type << std::endl;
 
     if(request_type=="LIST") {
       std::string type;
       iss >> type;
+
+	  std::cout << "List type: " << type << std::endl;
+
       if(type=="CLASS") {
         list_class(pipe);
       }
+	  else if (type == "OBJECT") {
+		list_object(pipe);
+	  }
       else if(type=="ACTION") {
         std::string class_name;
         iss >> class_name;
-        list_actions(pipe,class_name);
+        list_action(pipe,class_name);
       }
     }
     if(request_type=="GET") {
@@ -76,18 +92,21 @@ int main() {
         iss >> attr_name;
         get_object_attribute(pipe,object_name,attr_name);
       }
-      // TODO: GET WHOLE OBJ
+	  else {
+		  get_object(pipe, object_name);
+	  }
     }
     else if(request_type=="TYPE") {
-      // TODO: Not Implemented
       std::string object_name;
       iss >> object_name;
       if(!iss.eof()) {
         std::string attr_name;
         iss >> attr_name;
-        // TYPE OBJ ATTR
+		get_type_object_attribute(pipe, object_name, attr_name);
       }
-      // TYPE OBJ
+	  else {
+		  get_type_object(pipe, object_name);
+	  }
     }
     else if(request_type=="CREATE") {
       std::string type,object_name;
@@ -110,6 +129,8 @@ int main() {
 
     delete[] buff;
   }
+
+  std::cout << "Connection closed. Exiting." << std::endl;
 
   return 0;
 }
